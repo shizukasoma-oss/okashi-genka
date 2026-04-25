@@ -1,0 +1,16 @@
+{
+  "name": "お菓子原価計算",
+  "short_name": "原価計算",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fdf6f0",
+  "theme_color": "#c8763a",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
