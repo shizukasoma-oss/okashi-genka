@@ -300,18 +300,34 @@
 
 <!-- ===== 材料管理タブ ===== -->
 <div id="tab-ingredients" class="tab-panel active">
-  <div class="card">
-    <div class="card-title">☁️ クラウド同期設定</div>
-    <label>API URL</label>
-    <input type="text" id="cloud-url" placeholder="https://okashi-api-xxxx.onrender.com">
-    <label>シークレットキー</label>
-    <input type="password" id="cloud-key" placeholder="設定したSECRET_KEY">
-    <button class="btn btn-secondary btn-full" onclick="saveCloudSettings()">設定を保存</button>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-      <button class="btn btn-primary" onclick="syncToCloud()">☁️ クラウドに保存</button>
-      <button class="btn btn-secondary" onclick="syncFromCloud()">☁️ クラウドから読込</button>
+  <!-- 管理者ロック -->
+  <div id="cloud-lock" class="card" style="text-align:center">
+    <div style="font-size:0.85rem;color:#9a7c6a;margin-bottom:10px">⚙️ 管理者設定</div>
+    <div style="display:flex;gap:8px">
+      <input type="password" id="admin-pass-input" placeholder="パスワードを入力" style="flex:1">
+      <button class="btn btn-secondary btn-sm" onclick="unlockSettings()">解除</button>
     </div>
-    <div id="cloud-status" style="font-size:0.78rem;color:#9a7c6a;margin-top:8px;text-align:center"></div>
+    <div id="admin-pass-error" style="font-size:0.78rem;color:#c0392b;margin-top:6px;display:none">パスワードが違います</div>
+  </div>
+
+  <!-- クラウド同期設定（ロック解除後に表示） -->
+  <div id="cloud-settings-panel" style="display:none">
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        ☁️ クラウド同期設定
+        <button onclick="lockSettings()" style="background:none;border:none;font-size:0.78rem;color:#9a7c6a;cursor:pointer">🔒 隠す</button>
+      </div>
+      <label>API URL</label>
+      <input type="text" id="cloud-url" placeholder="https://okashi-api-xxxx.onrender.com">
+      <label>シークレットキー</label>
+      <input type="password" id="cloud-key" placeholder="設定したSECRET_KEY">
+      <button class="btn btn-secondary btn-full" onclick="saveCloudSettings()">設定を保存</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <button class="btn btn-primary" onclick="syncToCloud()">☁️ クラウドに保存</button>
+        <button class="btn btn-secondary" onclick="syncFromCloud()">☁️ クラウドから読込</button>
+      </div>
+      <div id="cloud-status" style="font-size:0.78rem;color:#9a7c6a;margin-top:8px;text-align:center"></div>
+    </div>
   </div>
   <div class="card">
     <div class="card-title">
@@ -513,6 +529,30 @@ let products      = JSON.parse(localStorage.getItem('okashi_products')      || '
 let sessions      = JSON.parse(localStorage.getItem('okashi_sessions')      || '[]');
 let monthlyFee        = parseFloat(localStorage.getItem('okashi_monthly_fee')         || '0');
 let monthlyFeeEnabled = localStorage.getItem('okashi_monthly_fee_enabled') !== 'false';
+let settingsUnlocked  = localStorage.getItem('okashi_settings_unlocked') === 'true';
+
+const ADMIN_PASS = 'genkakeisan';
+
+function unlockSettings() {
+  const input = document.getElementById('admin-pass-input');
+  if (input.value === ADMIN_PASS) {
+    settingsUnlocked = true;
+    localStorage.setItem('okashi_settings_unlocked', 'true');
+    document.getElementById('cloud-lock').style.display = 'none';
+    document.getElementById('cloud-settings-panel').style.display = 'block';
+    document.getElementById('admin-pass-error').style.display = 'none';
+    input.value = '';
+  } else {
+    document.getElementById('admin-pass-error').style.display = 'block';
+  }
+}
+
+function lockSettings() {
+  settingsUnlocked = false;
+  localStorage.setItem('okashi_settings_unlocked', 'false');
+  document.getElementById('cloud-lock').style.display = 'block';
+  document.getElementById('cloud-settings-panel').style.display = 'none';
+}
 
 function saveData() {
   localStorage.setItem('okashi_ingredients', JSON.stringify(ingredients));
@@ -1226,6 +1266,10 @@ async function syncFromCloud() {
 // ===== 初期レンダリング =====
 if (monthlyFee > 0) document.getElementById('monthly-fee').value = monthlyFee;
 document.getElementById('monthly-fee-enabled').checked = monthlyFeeEnabled;
+if (settingsUnlocked) {
+  document.getElementById('cloud-lock').style.display = 'none';
+  document.getElementById('cloud-settings-panel').style.display = 'block';
+}
 if (cloudUrl) document.getElementById('cloud-url').value = cloudUrl;
 if (cloudKey) document.getElementById('cloud-key').value = cloudKey;
 renderIngredients();
