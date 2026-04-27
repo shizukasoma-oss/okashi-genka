@@ -1014,7 +1014,7 @@ function renderSessions() {
     const totalBatches = sess.items.reduce((s, i) => s + i.batches, 0);
     const prodNames = sess.items.map(i => {
       const p = products.find(p => p.id === i.productId);
-      return p ? `${esc(p.name)}×${i.batches}バッチ` : '(削除済み)';
+      return p ? `${esc(p.name)}×${i.batches}個` : '(削除済み)';
     }).join('、');
     return `
       <div class="list-item">
@@ -1070,7 +1070,7 @@ function addSessionProdRow(productId, batches) {
   row.id = 'srow-' + rowId;
   row.innerHTML = `
     <select class="ssel">${options}</select>
-    <input type="number" class="sbatch" placeholder="バッチ数" value="${batches||''}" min="1" step="1" style="width:80px">
+    <input type="number" class="sbatch" placeholder="個数" value="${batches||''}" min="1" step="1" style="width:80px">
     <button class="btn btn-danger btn-sm" onclick="document.getElementById('srow-${rowId}').remove();updateSessionProdCount()">✕</button>
   `;
   container.appendChild(row);
@@ -1178,13 +1178,13 @@ function calcCost(prod) {
   }
   const material = materialTotal / prod.batch;
 
-  // 時間料金（セッション按分 ÷ 個数）
+  // 時間料金（セッション按分・1個あたり）
   const kitchenTimeRaw = calcKitchenFeePerBatch(prod.id);
-  const kitchenTime    = kitchenTimeRaw !== null ? kitchenTimeRaw / prod.batch : null;
+  const kitchenTime    = kitchenTimeRaw !== null ? kitchenTimeRaw : null;
 
-  // 月額固定費（月次按分 ÷ 個数）
+  // 月額固定費（月次按分・1個あたり）
   const kitchenMonthlyRaw = calcMonthlyFeePerBatch(prod.id);
-  const kitchenMonthly    = kitchenMonthlyRaw !== null ? kitchenMonthlyRaw / prod.batch : null;
+  const kitchenMonthly    = kitchenMonthlyRaw !== null ? kitchenMonthlyRaw : null;
 
   // 包装費（1個あたり合計）
   let pkgTotal = 0;
