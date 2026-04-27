@@ -192,6 +192,16 @@
   .cost-row.profit { color: #9a7c6a; font-size: 0.8rem; }
   .cost-row.no-session { color: #b0998a; font-style: italic; }
 
+  /* 原価セクション色分け */
+  .cost-section { border-radius: 8px; padding: 6px 10px; margin: 5px 0; }
+  .cost-section.material  { background: #fff3e8; border-left: 3px solid #c8763a; }
+  .cost-section.kitchen   { background: #e8f0ff; border-left: 3px solid #5a7fc8; }
+  .cost-section.packaging { background: #e8f8ee; border-left: 3px solid #4a9c6a; }
+  .cost-section-title { font-size: 0.78rem; font-weight: bold; margin-bottom: 2px; }
+  .cost-section.material  .cost-section-title { color: #c8763a; }
+  .cost-section.kitchen   .cost-section-title { color: #5a7fc8; }
+  .cost-section.packaging .cost-section-title { color: #4a9c6a; }
+
   /* スライダー */
   .slider-wrap { margin: 4px 0 8px; }
   .slider-label { font-size: 0.85rem; color: #7a5c4a; margin-bottom: 6px; }
@@ -1161,20 +1171,29 @@ function renderCosts() {
           : `<div class="cost-row no-session"><span>　月額固定費</span><span>生産記録なし</span></div>`)
       : '';
     const kitchenTotal = (kitchenTime ?? 0) + (kitchenMonthly ?? 0);
-    const kitchenRow = `<div class="cost-row"><span>キッチン利用料 小計</span><span>¥${kitchenTotal.toFixed(2)}</span></div>`
-      + kitchenTimeRow + kitchenMonthlyRow;
+    const kitchenRow = kitchenTimeRow + kitchenMonthlyRow
+      + `<div class="cost-row"><span>小計</span><span>¥${kitchenTotal.toFixed(2)}</span></div>`;
 
     const pkgSection = pkgDetail
-      ? `${pkgDetail}<div class="cost-row"><span>　包装費 小計</span><span>¥${pkg.toFixed(2)}</span></div>`
-      : `<div class="cost-row"><span>包装費</span><span>¥${pkg.toFixed(2)}</span></div>`;
+      ? `${pkgDetail}<div class="cost-row"><span>小計</span><span>¥${pkg.toFixed(2)}</span></div>`
+      : `<div class="cost-row"><span>小計</span><span>¥${pkg.toFixed(2)}</span></div>`;
 
     return `
       <div class="cost-card">
         <div class="cost-card-name">${esc(prod.name)} <span class="badge">1個あたり</span></div>
-        ${recipeDetail}
-        <div class="cost-row"><span>　材料費 小計</span><span>¥${material.toFixed(2)}</span></div>
-        ${kitchenRow}
-        ${pkgSection}
+        <div class="cost-section material">
+          <div class="cost-section-title">🌾 材料費</div>
+          ${recipeDetail}
+          <div class="cost-row"><span>小計</span><span>¥${material.toFixed(2)}</span></div>
+        </div>
+        <div class="cost-section kitchen">
+          <div class="cost-section-title">🔥 キッチン利用料</div>
+          ${kitchenRow}
+        </div>
+        <div class="cost-section packaging">
+          <div class="cost-section-title">🎁 包装費</div>
+          ${pkgSection}
+        </div>
         <div class="cost-row total"><span>原価合計</span><span>¥${total.toFixed(2)}</span></div>
         <div class="cost-row price"><span>推奨販売価格 (${mult}倍)</span><span>¥${suggestedPrice.toLocaleString()}</span></div>
         <div class="cost-row profit"><span>利益 / 利益率</span><span>¥${profit.toFixed(1)} / ${profitRate}%</span></div>
