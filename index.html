@@ -10,6 +10,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="原価計算">
 <link rel="apple-touch-icon" href="icon.svg">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -31,8 +34,6 @@
     box-shadow: 0 2px 4px rgba(0,0,0,.15);
   }
   header span { font-size: 0.85rem; font-weight: normal; opacity: .85; margin-left: 8px; }
-
-  /* タブ */
   .tabs {
     display: flex;
     background: #fff;
@@ -54,15 +55,9 @@
     font-family: inherit;
     line-height: 1.3;
   }
-  .tab-btn.active {
-    color: #c8763a;
-    border-bottom-color: #c8763a;
-    font-weight: bold;
-  }
+  .tab-btn.active { color: #c8763a; border-bottom-color: #c8763a; font-weight: bold; }
   .tab-panel { display: none; padding: 16px; max-width: 640px; margin: 0 auto; }
   .tab-panel.active { display: block; }
-
-  /* カード */
   .card {
     background: white;
     border-radius: 12px;
@@ -79,11 +74,9 @@
     justify-content: space-between;
     align-items: center;
   }
-
-  /* フォーム */
   label { display: block; font-size: 0.8rem; color: #7a5c4a; margin-bottom: 3px; margin-top: 10px; }
   label:first-child { margin-top: 0; }
-  input[type=text], input[type=number], input[type=date], select {
+  input[type=text], input[type=number], input[type=date], input[type=email], select {
     width: 100%;
     padding: 9px 10px;
     border: 1px solid #ddd;
@@ -94,14 +87,10 @@
     color: #3d2b1f;
     transition: border .15s;
   }
-  input[type=text]:focus, input[type=number]:focus, input[type=date]:focus, select:focus {
-    outline: none;
-    border-color: #c8763a;
-    background: white;
+  input[type=text]:focus, input[type=number]:focus, input[type=date]:focus, input[type=email]:focus, select:focus {
+    outline: none; border-color: #c8763a; background: white;
   }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-  /* ボタン */
   .btn {
     padding: 10px 18px;
     border: none;
@@ -117,8 +106,6 @@
   .btn-danger { background: #e57373; color: white; }
   .btn-sm { padding: 5px 10px; font-size: 0.78rem; border-radius: 6px; }
   .btn-full { width: 100%; margin-top: 12px; }
-
-  /* リスト行 */
   .list-item {
     display: flex;
     align-items: center;
@@ -131,8 +118,6 @@
   .list-item-name { font-weight: bold; font-size: 0.95rem; }
   .list-item-sub { font-size: 0.78rem; color: #9a7c6a; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .list-item-actions { display: flex; gap: 6px; flex-shrink: 0; margin-left: 8px; }
-
-  /* 食材行（レシピ用）*/
   .recipe-row {
     display: grid;
     grid-template-columns: 1fr auto auto auto;
@@ -141,8 +126,6 @@
     margin-bottom: 6px;
   }
   .recipe-row select, .recipe-row input { font-size: 0.85rem; }
-
-  /* 包装材行 */
   .pkg-row {
     display: grid;
     grid-template-columns: 1fr auto auto auto;
@@ -151,8 +134,6 @@
     margin-bottom: 6px;
   }
   .pkg-row select, .pkg-row input { font-size: 0.85rem; }
-
-  /* セッション商品行 */
   .session-row {
     display: grid;
     grid-template-columns: 1fr auto auto;
@@ -162,8 +143,6 @@
   }
   .session-row select { font-size: 0.85rem; }
   .session-row input { font-size: 0.85rem; width: 70px; }
-
-  /* 原価カード */
   .cost-card {
     background: white;
     border-radius: 12px;
@@ -191,8 +170,6 @@
   .cost-row.price { font-weight: bold; font-size: 1rem; color: #4a7c59; margin-top: 4px; }
   .cost-row.profit { color: #9a7c6a; font-size: 0.8rem; }
   .cost-row.no-session { color: #b0998a; font-style: italic; }
-
-  /* 管理者ボタン */
   #admin-btn {
     position: fixed;
     bottom: 24px;
@@ -209,8 +186,6 @@
     transition: opacity .2s;
   }
   #admin-btn:active { opacity: 0.8; }
-
-  /* 管理者モーダル */
   #admin-modal-overlay {
     display: none;
     position: fixed;
@@ -225,12 +200,10 @@
     background: #fff;
     border-radius: 14px;
     padding: 22px 20px;
-    width: 290px;
+    width: 300px;
     max-width: 90vw;
     box-shadow: 0 8px 24px rgba(0,0,0,.2);
   }
-
-  /* 原価セクション色分け */
   .cost-section { border-radius: 8px; padding: 6px 10px; margin: 5px 0; }
   .cost-section.material  { background: #fff3e8; border-left: 3px solid #c8763a; }
   .cost-section.kitchen   { background: #e8f0ff; border-left: 3px solid #5a7fc8; }
@@ -239,15 +212,11 @@
   .cost-section.material  .cost-section-title { color: #c8763a; }
   .cost-section.kitchen   .cost-section-title { color: #5a7fc8; }
   .cost-section.packaging .cost-section-title { color: #4a9c6a; }
-
-  /* スライダー */
   .slider-wrap { margin: 4px 0 8px; }
   .slider-label { font-size: 0.85rem; color: #7a5c4a; margin-bottom: 6px; }
   .slider-label strong { color: #c8763a; font-size: 1.1rem; }
   input[type=range] { width: 100%; accent-color: #c8763a; }
   .slider-ticks { display: flex; justify-content: space-between; font-size: 0.75rem; color: #b0998a; }
-
-  /* モーダル */
   .modal-overlay {
     display: none;
     position: fixed;
@@ -277,8 +246,6 @@
     align-items: center;
   }
   .modal-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #9a7c6a; }
-
-  /* 情報ボックス */
   .info-box {
     background: #fff8f0;
     border: 1px solid #f0d8c0;
@@ -289,11 +256,7 @@
     margin-bottom: 12px;
     line-height: 1.5;
   }
-
-  /* 空状態 */
   .empty { text-align: center; padding: 30px; color: #b0998a; font-size: 0.9rem; }
-
-  /* バッジ */
   .badge {
     display: inline-block;
     background: #f0e8e0;
@@ -303,8 +266,6 @@
     font-size: 0.75rem;
     margin-left: 6px;
   }
-
-  /* トースト */
   #toast {
     position: fixed;
     bottom: 24px;
@@ -321,7 +282,6 @@
     white-space: nowrap;
   }
   #toast.show { transform: translateX(-50%) translateY(0); }
-
   @media (min-width: 480px) {
     .tab-btn { font-size: 0.82rem; }
     .modal-overlay { align-items: center; }
@@ -345,25 +305,22 @@
 <!-- ===== 材料管理タブ ===== -->
 <div id="tab-ingredients" class="tab-panel active">
 
-  <!-- クラウド同期設定（ロック解除後に表示） -->
   <div id="cloud-settings-panel" style="display:none">
     <div class="card">
       <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
-        ☁️ クラウド同期設定
+        ☁️ クラウド同期
         <button onclick="lockSettings()" style="background:none;border:none;font-size:0.78rem;color:#9a7c6a;cursor:pointer">🔒 隠す</button>
       </div>
-      <label>API URL</label>
-      <input type="text" id="cloud-url" placeholder="https://okashi-api-xxxx.onrender.com">
-      <label>シークレットキー</label>
-      <input type="password" id="cloud-key" placeholder="設定したSECRET_KEY">
-      <button class="btn btn-secondary btn-full" onclick="saveCloudSettings()">設定を保存</button>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <div id="cloud-user-info" style="font-size:0.85rem;color:#4a7c59;margin-bottom:10px;text-align:center"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <button class="btn btn-primary" onclick="syncToCloud()">☁️ クラウドに保存</button>
         <button class="btn btn-secondary" onclick="syncFromCloud()">☁️ クラウドから読込</button>
       </div>
+      <button class="btn btn-secondary btn-full" style="margin-top:8px;font-size:0.82rem" onclick="doSignOut()">ログアウト</button>
       <div id="cloud-status" style="font-size:0.78rem;color:#9a7c6a;margin-top:8px;text-align:center"></div>
     </div>
   </div>
+
   <div class="card">
     <div class="card-title">
       食材マスター
@@ -431,931 +388,4 @@
       <div class="slider-ticks"><span>1.5×</span><span>2×</span><span>2.5×</span><span>3×</span><span>3.5×</span><span>4×</span><span>4.5×</span><span>5×</span></div>
     </div>
   </div>
-  <div id="cost-list"><div class="empty">商品を登録すると原価が表示されます</div></div>
-</div>
-
-<!-- ===== 食材追加モーダル ===== -->
-<div id="ingredient-modal" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-title">
-      <span id="ing-modal-title">食材を追加</span>
-      <button class="modal-close" onclick="closeModal('ingredient-modal')">✕</button>
-    </div>
-    <input type="hidden" id="ing-edit-id">
-    <label>食材名</label>
-    <input type="text" id="ing-name" placeholder="例：薄力粉">
-    <div class="row2">
-      <div>
-        <label>購入量</label>
-        <input type="number" id="ing-amount" placeholder="例：1000" min="0.01" step="any">
-      </div>
-      <div>
-        <label>単位</label>
-        <select id="ing-unit">
-          <option value="g">g</option>
-          <option value="ml">ml</option>
-          <option value="個">個</option>
-          <option value="枚">枚</option>
-          <option value="本">本</option>
-        </select>
-      </div>
-    </div>
-    <label>購入価格（円）</label>
-    <input type="number" id="ing-price" placeholder="例：180" min="0" step="any">
-    <button class="btn btn-primary btn-full" onclick="saveIngredient()">保存する</button>
-    <button class="btn btn-secondary btn-full" style="margin-top:6px" onclick="closeModal('ingredient-modal')">キャンセル</button>
-  </div>
-</div>
-
-<!-- ===== 包装材追加モーダル ===== -->
-<div id="pkgitem-modal" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-title">
-      <span id="pkgitem-modal-title">包装材を追加</span>
-      <button class="modal-close" onclick="closeModal('pkgitem-modal')">✕</button>
-    </div>
-    <input type="hidden" id="pkgitem-edit-id">
-    <label>包装材名</label>
-    <input type="text" id="pkgitem-name" placeholder="例：OPP袋、ラベル、シリカゲル">
-    <div class="row2">
-      <div>
-        <label>購入数量</label>
-        <input type="number" id="pkgitem-amount" placeholder="例：100" min="0.01" step="any">
-      </div>
-      <div>
-        <label>単位</label>
-        <select id="pkgitem-unit">
-          <option value="枚">枚</option>
-          <option value="個">個</option>
-          <option value="本">本</option>
-          <option value="袋">袋</option>
-          <option value="冊">冊</option>
-          <option value="m">m</option>
-        </select>
-      </div>
-    </div>
-    <label>購入価格（円）</label>
-    <input type="number" id="pkgitem-price" placeholder="例：500" min="0" step="any">
-    <button class="btn btn-primary btn-full" onclick="savePkgItem()">保存する</button>
-    <button class="btn btn-secondary btn-full" style="margin-top:6px" onclick="closeModal('pkgitem-modal')">キャンセル</button>
-  </div>
-</div>
-
-<!-- ===== 商品追加モーダル ===== -->
-<div id="product-modal" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-title">
-      <span id="prod-modal-title">商品を追加</span>
-      <button class="modal-close" onclick="closeModal('product-modal')">✕</button>
-    </div>
-    <input type="hidden" id="prod-edit-id">
-    <label>商品名</label>
-    <input type="text" id="prod-name" placeholder="例：バターサンド">
-    <label>1バッチで何個できるか</label>
-    <input type="number" id="prod-batch" placeholder="例：12" min="1" step="1">
-
-    <label style="margin-top:14px">使用食材 <span class="badge" id="recipe-count">0件</span></label>
-    <div id="recipe-rows"></div>
-    <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addRecipeRow()">＋ 食材を追加</button>
-
-    <label style="margin-top:16px">包装材 <span class="badge" id="pkg-count">0件</span></label>
-    <div id="pkg-rows"></div>
-    <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addPkgRow()"
-      id="add-pkg-row-btn">＋ 包装材を追加</button>
-
-    <button class="btn btn-primary btn-full" onclick="saveProduct()">保存する</button>
-    <button class="btn btn-secondary btn-full" style="margin-top:6px" onclick="closeModal('product-modal')">キャンセル</button>
-  </div>
-</div>
-
-<!-- ===== 生産記録モーダル ===== -->
-<div id="session-modal" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-title">
-      <span id="sess-modal-title">生産記録を追加</span>
-      <button class="modal-close" onclick="closeModal('session-modal')">✕</button>
-    </div>
-    <input type="hidden" id="sess-edit-id">
-    <div class="row2">
-      <div>
-        <label>利用日</label>
-        <input type="date" id="sess-date">
-      </div>
-      <div>
-        <label>キッチン利用料（合計・円）</label>
-        <input type="number" id="sess-fee" placeholder="例：3000" min="0" step="any">
-      </div>
-    </div>
-    <label style="margin-top:14px">作った商品 <span class="badge" id="session-prod-count">0件</span></label>
-    <div id="session-prod-rows"></div>
-    <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addSessionProdRow()">＋ 商品を追加</button>
-    <button class="btn btn-primary btn-full" onclick="saveSession()">保存する</button>
-    <button class="btn btn-secondary btn-full" style="margin-top:6px" onclick="closeModal('session-modal')">キャンセル</button>
-  </div>
-</div>
-
-<!-- 管理者ボタン（固定） -->
-<button id="admin-btn" onclick="toggleAdminModal()" title="管理者設定">⚙️</button>
-
-<!-- 管理者モーダル -->
-<div id="admin-modal-overlay" onclick="closeAdminModal(event)">
-  <div id="admin-modal">
-    <div style="font-weight:bold;font-size:1rem;margin-bottom:14px;color:#3d2b1f">🔐 管理者設定</div>
-    <input type="password" id="admin-pass-input" placeholder="パスワードを入力"
-      onkeydown="if(event.key==='Enter')unlockSettings()"
-      style="width:100%;padding:10px;border:1px solid #e8d5c4;border-radius:8px;font-size:1rem">
-    <div id="admin-pass-error" style="font-size:0.78rem;color:#c0392b;margin-top:6px;display:none">パスワードが違います</div>
-    <div style="display:flex;gap:8px;margin-top:14px">
-      <button class="btn btn-secondary" style="flex:1" onclick="closeAdminModal()">キャンセル</button>
-      <button class="btn btn-primary" style="flex:1" onclick="unlockSettings()">解除</button>
-    </div>
-  </div>
-</div>
-
-<div id="toast"></div>
-
-<script>
-// ===== データ =====
-let ingredients   = JSON.parse(localStorage.getItem('okashi_ingredients')   || '[]');
-let pkgItems      = JSON.parse(localStorage.getItem('okashi_pkgitems')      || '[]');
-let products      = JSON.parse(localStorage.getItem('okashi_products')      || '[]');
-let sessions      = JSON.parse(localStorage.getItem('okashi_sessions')      || '[]');
-let monthlyFee        = parseFloat(localStorage.getItem('okashi_monthly_fee')         || '0');
-let monthlyFeeEnabled = localStorage.getItem('okashi_monthly_fee_enabled') !== 'false';
-let settingsUnlocked  = localStorage.getItem('okashi_settings_unlocked') === 'true';
-
-const ADMIN_PASS = 'genkakeisan';
-
-function toggleAdminModal() {
-  if (settingsUnlocked) {
-    // 解除済みならそのまま材料管理タブへ移動
-    switchTab('ingredients', document.querySelector('.tab-btn'));
-    document.getElementById('cloud-settings-panel').scrollIntoView({behavior:'smooth'});
-    return;
-  }
-  document.getElementById('admin-modal-overlay').classList.add('open');
-  setTimeout(() => document.getElementById('admin-pass-input').focus(), 100);
-}
-
-function closeAdminModal(e) {
-  if (e && e.target !== document.getElementById('admin-modal-overlay')) return;
-  document.getElementById('admin-modal-overlay').classList.remove('open');
-  document.getElementById('admin-pass-input').value = '';
-  document.getElementById('admin-pass-error').style.display = 'none';
-}
-
-function unlockSettings() {
-  const input = document.getElementById('admin-pass-input');
-  if (input.value === ADMIN_PASS) {
-    settingsUnlocked = true;
-    localStorage.setItem('okashi_settings_unlocked', 'true');
-    document.getElementById('admin-modal-overlay').classList.remove('open');
-    document.getElementById('cloud-settings-panel').style.display = 'block';
-    document.getElementById('admin-pass-error').style.display = 'none';
-    input.value = '';
-    showToast('管理者設定を解除しました');
-  } else {
-    document.getElementById('admin-pass-error').style.display = 'block';
-  }
-}
-
-function lockSettings() {
-  settingsUnlocked = false;
-  localStorage.setItem('okashi_settings_unlocked', 'false');
-  document.getElementById('cloud-settings-panel').style.display = 'none';
-  showToast('設定を隠しました');
-}
-
-function saveData() {
-  localStorage.setItem('okashi_ingredients', JSON.stringify(ingredients));
-  localStorage.setItem('okashi_pkgitems',    JSON.stringify(pkgItems));
-  localStorage.setItem('okashi_products',    JSON.stringify(products));
-  localStorage.setItem('okashi_sessions',    JSON.stringify(sessions));
-  localStorage.setItem('okashi_monthly_fee',         String(monthlyFee));
-  localStorage.setItem('okashi_monthly_fee_enabled', String(monthlyFeeEnabled));
-}
-
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
-
-// ===== タブ =====
-function switchTab(name, btn) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  btn.classList.add('active');
-  if (name === 'costs') renderCosts();
-}
-
-// ===== モーダル =====
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
-  });
-});
-
-// ===== トースト =====
-let toastTimer;
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
-}
-
-// ===== 食材管理 =====
-function renderIngredients() {
-  const el = document.getElementById('ingredient-list');
-  if (!ingredients.length) { el.innerHTML = '<div class="empty">食材を追加してください</div>'; return; }
-  el.innerHTML = ingredients.map(ing => {
-    const unitPrice = (ing.price / ing.amount).toFixed(4);
-    return `
-      <div class="list-item">
-        <div class="list-item-info">
-          <div class="list-item-name">${esc(ing.name)}</div>
-          <div class="list-item-sub">${ing.amount}${ing.unit} / ¥${ing.price.toLocaleString()} → ¥${unitPrice}/${ing.unit}</div>
-        </div>
-        <div class="list-item-actions">
-          <button class="btn btn-secondary btn-sm" onclick="editIngredient('${ing.id}')">編集</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteIngredient('${ing.id}')">削除</button>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-function openIngredientModal(id) {
-  document.getElementById('ing-edit-id').value = '';
-  document.getElementById('ing-name').value = '';
-  document.getElementById('ing-amount').value = '';
-  document.getElementById('ing-price').value = '';
-  document.getElementById('ing-unit').value = 'g';
-  document.getElementById('ing-modal-title').textContent = '食材を追加';
-  if (id) {
-    const ing = ingredients.find(i => i.id === id);
-    if (!ing) return;
-    document.getElementById('ing-edit-id').value = ing.id;
-    document.getElementById('ing-name').value = ing.name;
-    document.getElementById('ing-amount').value = ing.amount;
-    document.getElementById('ing-price').value = ing.price;
-    document.getElementById('ing-unit').value = ing.unit;
-    document.getElementById('ing-modal-title').textContent = '食材を編集';
-  }
-  document.getElementById('ingredient-modal').classList.add('open');
-  setTimeout(() => document.getElementById('ing-name').focus(), 100);
-}
-
-function editIngredient(id) { openIngredientModal(id); }
-
-function saveIngredient() {
-  const name   = document.getElementById('ing-name').value.trim();
-  const amount = parseFloat(document.getElementById('ing-amount').value);
-  const price  = parseFloat(document.getElementById('ing-price').value);
-  const unit   = document.getElementById('ing-unit').value;
-  const editId = document.getElementById('ing-edit-id').value;
-
-  if (!name)                      { alert('食材名を入力してください'); return; }
-  if (!amount || amount <= 0)     { alert('購入量を正しく入力してください'); return; }
-  if (isNaN(price) || price < 0) { alert('購入価格を正しく入力してください'); return; }
-
-  if (editId) {
-    ingredients[ingredients.findIndex(i => i.id === editId)] = { id: editId, name, amount, unit, price };
-  } else {
-    ingredients.push({ id: uid(), name, amount, unit, price });
-  }
-  saveData();
-  closeModal('ingredient-modal');
-  renderIngredients();
-  showToast(editId ? '食材を更新しました' : '食材を追加しました');
-}
-
-function deleteIngredient(id) {
-  const ing = ingredients.find(i => i.id === id);
-  if (!ing) return;
-  if (!confirm(`「${ing.name}」を削除しますか？\n※使用中の商品からも削除されます`)) return;
-  ingredients = ingredients.filter(i => i.id !== id);
-  products = products.map(p => ({ ...p, recipe: p.recipe.filter(r => r.ingId !== id) }));
-  saveData();
-  renderIngredients();
-  renderProducts();
-  showToast('食材を削除しました');
-}
-
-// ===== 包装材マスター =====
-function renderPkgItems() {
-  const el = document.getElementById('pkgitem-list');
-  if (!pkgItems.length) { el.innerHTML = '<div class="empty">袋・ラベル・シリカゲルなどを追加してください</div>'; return; }
-  el.innerHTML = pkgItems.map(item => {
-    const unitPrice = (item.price / item.amount).toFixed(4);
-    return `
-      <div class="list-item">
-        <div class="list-item-info">
-          <div class="list-item-name">${esc(item.name)}</div>
-          <div class="list-item-sub">${item.amount}${item.unit} / ¥${item.price.toLocaleString()} → ¥${unitPrice}/${item.unit}</div>
-        </div>
-        <div class="list-item-actions">
-          <button class="btn btn-secondary btn-sm" onclick="editPkgItem('${item.id}')">編集</button>
-          <button class="btn btn-danger btn-sm" onclick="deletePkgItem('${item.id}')">削除</button>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-function openPkgItemModal(id) {
-  document.getElementById('pkgitem-edit-id').value = '';
-  document.getElementById('pkgitem-name').value = '';
-  document.getElementById('pkgitem-amount').value = '';
-  document.getElementById('pkgitem-price').value = '';
-  document.getElementById('pkgitem-unit').value = '枚';
-  document.getElementById('pkgitem-modal-title').textContent = '包装材を追加';
-  if (id) {
-    const item = pkgItems.find(i => i.id === id);
-    if (!item) return;
-    document.getElementById('pkgitem-edit-id').value = item.id;
-    document.getElementById('pkgitem-name').value = item.name;
-    document.getElementById('pkgitem-amount').value = item.amount;
-    document.getElementById('pkgitem-price').value = item.price;
-    document.getElementById('pkgitem-unit').value = item.unit;
-    document.getElementById('pkgitem-modal-title').textContent = '包装材を編集';
-  }
-  document.getElementById('pkgitem-modal').classList.add('open');
-  setTimeout(() => document.getElementById('pkgitem-name').focus(), 100);
-}
-
-function editPkgItem(id) { openPkgItemModal(id); }
-
-function savePkgItem() {
-  const name   = document.getElementById('pkgitem-name').value.trim();
-  const amount = parseFloat(document.getElementById('pkgitem-amount').value);
-  const price  = parseFloat(document.getElementById('pkgitem-price').value);
-  const unit   = document.getElementById('pkgitem-unit').value;
-  const editId = document.getElementById('pkgitem-edit-id').value;
-
-  if (!name)                      { alert('包装材名を入力してください'); return; }
-  if (!amount || amount <= 0)     { alert('購入数量を正しく入力してください'); return; }
-  if (isNaN(price) || price < 0) { alert('購入価格を正しく入力してください'); return; }
-
-  if (editId) {
-    pkgItems[pkgItems.findIndex(i => i.id === editId)] = { id: editId, name, amount, unit, price };
-  } else {
-    pkgItems.push({ id: uid(), name, amount, unit, price });
-  }
-  saveData();
-  closeModal('pkgitem-modal');
-  renderPkgItems();
-  showToast(editId ? '包装材を更新しました' : '包装材を追加しました');
-}
-
-function deletePkgItem(id) {
-  const item = pkgItems.find(i => i.id === id);
-  if (!item) return;
-  if (!confirm(`「${item.name}」を削除しますか？\n※使用中の商品からも削除されます`)) return;
-  pkgItems = pkgItems.filter(i => i.id !== id);
-  products = products.map(p => ({ ...p, packaging: (p.packaging || []).filter(r => r.pkgItemId !== id) }));
-  saveData();
-  renderPkgItems();
-  renderProducts();
-  showToast('包装材を削除しました');
-}
-
-// ===== 商品管理 =====
-function renderProducts() {
-  const el = document.getElementById('product-list');
-  if (!products.length) { el.innerHTML = '<div class="empty">商品を追加してください</div>'; return; }
-  el.innerHTML = products.map(prod => {
-    const cost = calcCost(prod);
-    return `
-      <div class="list-item">
-        <div class="list-item-info">
-          <div class="list-item-name">${esc(prod.name)}</div>
-          <div class="list-item-sub">1バッチ${prod.batch}個 ／ 原価 ¥${cost.total.toFixed(1)}/個 ／ 食材${prod.recipe.length}種</div>
-        </div>
-        <div class="list-item-actions">
-          <button class="btn btn-secondary btn-sm" onclick="duplicateProduct('${prod.id}')">複製</button>
-          <button class="btn btn-secondary btn-sm" onclick="editProduct('${prod.id}')">編集</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteProduct('${prod.id}')">削除</button>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-function openProductModal(id) {
-  document.getElementById('prod-edit-id').value = '';
-  document.getElementById('prod-name').value = '';
-  document.getElementById('prod-batch').value = '';
-  document.getElementById('prod-modal-title').textContent = '商品を追加';
-  document.getElementById('recipe-rows').innerHTML = '';
-  document.getElementById('pkg-rows').innerHTML = '';
-  updateRecipeCount();
-  updatePkgCount();
-
-  if (id) {
-    const prod = products.find(p => p.id === id);
-    if (!prod) return;
-    document.getElementById('prod-edit-id').value = prod.id;
-    document.getElementById('prod-name').value = prod.name;
-    document.getElementById('prod-batch').value = prod.batch;
-    document.getElementById('prod-modal-title').textContent = '商品を編集';
-    prod.recipe.forEach(r => addRecipeRow(r.ingId, r.amount));
-    (prod.packaging || []).forEach(r => addPkgRow(r.pkgItemId, r.qty));
-  }
-
-  if (!ingredients.length) { alert('先に食材を登録してください'); return; }
-
-  const addPkgBtn = document.getElementById('add-pkg-row-btn');
-  addPkgBtn.style.display = pkgItems.length ? '' : 'none';
-
-  document.getElementById('product-modal').classList.add('open');
-  setTimeout(() => document.getElementById('prod-name').focus(), 100);
-}
-
-function editProduct(id) { openProductModal(id); }
-
-function duplicateProduct(id) {
-  const src = products.find(p => p.id === id);
-  if (!src) return;
-  if (!ingredients.length) { alert('先に食材を登録してください'); return; }
-
-  document.getElementById('prod-edit-id').value = '';
-  document.getElementById('prod-name').value = src.name + '（コピー）';
-  document.getElementById('prod-batch').value = src.batch;
-  document.getElementById('prod-modal-title').textContent = '商品を追加（複製）';
-  document.getElementById('recipe-rows').innerHTML = '';
-  document.getElementById('pkg-rows').innerHTML = '';
-  src.recipe.forEach(r => addRecipeRow(r.ingId, r.amount));
-  (src.packaging || []).forEach(r => addPkgRow(r.pkgItemId, r.qty));
-  updateRecipeCount();
-  updatePkgCount();
-
-  const addPkgBtn = document.getElementById('add-pkg-row-btn');
-  addPkgBtn.style.display = pkgItems.length ? '' : 'none';
-
-  document.getElementById('product-modal').classList.add('open');
-  setTimeout(() => {
-    const nameInput = document.getElementById('prod-name');
-    nameInput.focus();
-    nameInput.select();
-  }, 100);
-}
-
-function addRecipeRow(ingId, amount) {
-  if (!ingredients.length) return;
-  const container = document.getElementById('recipe-rows');
-  const rowId = uid();
-  const options = ingredients.map(ing =>
-    `<option value="${ing.id}" ${ing.id === ingId ? 'selected' : ''}>${esc(ing.name)}(${ing.unit})</option>`
-  ).join('');
-
-  const row = document.createElement('div');
-  row.className = 'recipe-row';
-  row.id = 'rrow-' + rowId;
-  row.innerHTML = `
-    <select class="rsel">${options}</select>
-    <input type="number" class="ramt" placeholder="量" value="${amount||''}" min="0.01" step="any" style="width:72px">
-    <span class="runit" style="font-size:.8rem;color:#9a7c6a;white-space:nowrap">${ingredients.find(i=>i.id===ingId)?.unit||ingredients[0].unit}</span>
-    <button class="btn btn-danger btn-sm" onclick="document.getElementById('rrow-${rowId}').remove();updateRecipeCount()">✕</button>
-  `;
-  row.querySelector('.rsel').addEventListener('change', function() {
-    const ing = ingredients.find(i => i.id === this.value);
-    row.querySelector('.runit').textContent = ing ? ing.unit : '';
-  });
-  container.appendChild(row);
-  updateRecipeCount();
-}
-
-function updateRecipeCount() {
-  const n = document.querySelectorAll('#recipe-rows .recipe-row').length;
-  document.getElementById('recipe-count').textContent = n + '件';
-}
-
-function addPkgRow(pkgItemId, qty) {
-  if (!pkgItems.length) return;
-  const container = document.getElementById('pkg-rows');
-  const rowId = uid();
-  const options = pkgItems.map(item =>
-    `<option value="${item.id}" ${item.id === pkgItemId ? 'selected' : ''}>${esc(item.name)}(${item.unit})</option>`
-  ).join('');
-
-  const row = document.createElement('div');
-  row.className = 'pkg-row';
-  row.id = 'pkgrow-' + rowId;
-  row.innerHTML = `
-    <select class="pkgsel">${options}</select>
-    <input type="number" class="pkgqty" placeholder="数量" value="${qty||''}" min="0.01" step="any" style="width:72px">
-    <span class="pkgunit" style="font-size:.8rem;color:#9a7c6a;white-space:nowrap">${pkgItems.find(i=>i.id===pkgItemId)?.unit||pkgItems[0].unit}</span>
-    <button class="btn btn-danger btn-sm" onclick="document.getElementById('pkgrow-${rowId}').remove();updatePkgCount()">✕</button>
-  `;
-  row.querySelector('.pkgsel').addEventListener('change', function() {
-    const item = pkgItems.find(i => i.id === this.value);
-    row.querySelector('.pkgunit').textContent = item ? item.unit : '';
-  });
-  container.appendChild(row);
-  updatePkgCount();
-}
-
-function updatePkgCount() {
-  const n = document.querySelectorAll('#pkg-rows .pkg-row').length;
-  document.getElementById('pkg-count').textContent = n + '件';
-}
-
-function saveProduct() {
-  const name   = document.getElementById('prod-name').value.trim();
-  const batch  = parseInt(document.getElementById('prod-batch').value);
-  const editId = document.getElementById('prod-edit-id').value;
-
-  if (!name)               { alert('商品名を入力してください'); return; }
-  if (!batch || batch < 1) { alert('バッチ個数を入力してください'); return; }
-
-  const recipeRows = document.querySelectorAll('#recipe-rows .recipe-row');
-  const recipe = [];
-  for (const row of recipeRows) {
-    const ingId  = row.querySelector('.rsel').value;
-    const amount = parseFloat(row.querySelector('.ramt').value);
-    if (!ingId || !amount || amount <= 0) { alert('食材の量を正しく入力してください'); return; }
-    recipe.push({ ingId, amount });
-  }
-
-  const pkgRows = document.querySelectorAll('#pkg-rows .pkg-row');
-  const packaging = [];
-  for (const row of pkgRows) {
-    const pkgItemId = row.querySelector('.pkgsel').value;
-    const qty       = parseFloat(row.querySelector('.pkgqty').value);
-    if (!pkgItemId || !qty || qty <= 0) { alert('包装材の数量を正しく入力してください'); return; }
-    packaging.push({ pkgItemId, qty });
-  }
-
-  const prod = { id: editId || uid(), name, batch, recipe, packaging };
-  if (editId) { products[products.findIndex(p => p.id === editId)] = prod; }
-  else        { products.push(prod); }
-  saveData();
-  closeModal('product-modal');
-  renderProducts();
-  showToast(editId ? '商品を更新しました' : '商品を追加しました');
-}
-
-function deleteProduct(id) {
-  const prod = products.find(p => p.id === id);
-  if (!prod) return;
-  if (!confirm(`「${prod.name}」を削除しますか？`)) return;
-  products = products.filter(p => p.id !== id);
-  sessions = sessions.map(s => ({ ...s, items: s.items.filter(i => i.productId !== id) }));
-  saveData();
-  renderProducts();
-  showToast('商品を削除しました');
-}
-
-// ===== 生産記録 =====
-function renderSessions() {
-  const el = document.getElementById('session-list');
-  if (!sessions.length) { el.innerHTML = '<div class="empty">生産記録を追加してください</div>'; return; }
-  const sorted = [...sessions].sort((a,b) => b.date.localeCompare(a.date));
-  el.innerHTML = sorted.map(sess => {
-    const totalBatches = sess.items.reduce((s, i) => s + i.batches, 0);
-    const prodNames = sess.items.map(i => {
-      const p = products.find(p => p.id === i.productId);
-      return p ? `${esc(p.name)}×${i.batches}個` : '(削除済み)';
-    }).join('、');
-    return `
-      <div class="list-item">
-        <div class="list-item-info">
-          <div class="list-item-name">${sess.date} ／ ¥${sess.fee.toLocaleString()}</div>
-          <div class="list-item-sub">計${totalBatches}バッチ：${prodNames}</div>
-        </div>
-        <div class="list-item-actions">
-          <button class="btn btn-secondary btn-sm" onclick="editSession('${sess.id}')">編集</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteSession('${sess.id}')">削除</button>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-function openSessionModal(id) {
-  if (!products.length) { alert('先に商品を登録してください'); return; }
-  document.getElementById('sess-edit-id').value = '';
-  document.getElementById('sess-date').value = new Date().toISOString().slice(0,10);
-  document.getElementById('sess-fee').value = '';
-  document.getElementById('sess-modal-title').textContent = '生産記録を追加';
-  document.getElementById('session-prod-rows').innerHTML = '';
-  updateSessionProdCount();
-
-  if (id) {
-    const sess = sessions.find(s => s.id === id);
-    if (!sess) return;
-    document.getElementById('sess-edit-id').value = sess.id;
-    document.getElementById('sess-date').value = sess.date;
-    document.getElementById('sess-fee').value = sess.fee;
-    document.getElementById('sess-modal-title').textContent = '生産記録を編集';
-    sess.items.forEach(item => addSessionProdRow(item.productId, item.batches));
-  } else {
-    addSessionProdRow();
-  }
-
-  document.getElementById('session-modal').classList.add('open');
-  setTimeout(() => document.getElementById('sess-fee').focus(), 100);
-}
-
-function editSession(id) { openSessionModal(id); }
-
-function addSessionProdRow(productId, batches) {
-  if (!products.length) return;
-  const container = document.getElementById('session-prod-rows');
-  const rowId = uid();
-  const options = products.map(p =>
-    `<option value="${p.id}" ${p.id === productId ? 'selected' : ''}>${esc(p.name)}</option>`
-  ).join('');
-
-  const row = document.createElement('div');
-  row.className = 'session-row';
-  row.id = 'srow-' + rowId;
-  row.innerHTML = `
-    <select class="ssel">${options}</select>
-    <input type="number" class="sbatch" placeholder="個数" value="${batches||''}" min="1" step="1" style="width:80px">
-    <button class="btn btn-danger btn-sm" onclick="document.getElementById('srow-${rowId}').remove();updateSessionProdCount()">✕</button>
-  `;
-  container.appendChild(row);
-  updateSessionProdCount();
-}
-
-function updateSessionProdCount() {
-  const n = document.querySelectorAll('#session-prod-rows .session-row').length;
-  document.getElementById('session-prod-count').textContent = n + '件';
-}
-
-function saveSession() {
-  const date   = document.getElementById('sess-date').value;
-  const fee    = parseFloat(document.getElementById('sess-fee').value);
-  const editId = document.getElementById('sess-edit-id').value;
-
-  if (!date)                    { alert('利用日を入力してください'); return; }
-  if (isNaN(fee) || fee < 0)   { alert('キッチン利用料を入力してください'); return; }
-
-  const rows = document.querySelectorAll('#session-prod-rows .session-row');
-  if (!rows.length) { alert('作った商品を1つ以上追加してください'); return; }
-
-  const items = [];
-  for (const row of rows) {
-    const productId = row.querySelector('.ssel').value;
-    const batches   = parseInt(row.querySelector('.sbatch').value);
-    if (!productId || !batches || batches < 1) { alert('バッチ数を正しく入力してください'); return; }
-    items.push({ productId, batches });
-  }
-
-  const sess = { id: editId || uid(), date, fee, items };
-  if (editId) { sessions[sessions.findIndex(s => s.id === editId)] = sess; }
-  else        { sessions.push(sess); }
-  saveData();
-  closeModal('session-modal');
-  renderSessions();
-  showToast(editId ? '記録を更新しました' : '生産記録を追加しました');
-}
-
-function deleteSession(id) {
-  if (!confirm('この生産記録を削除しますか？')) return;
-  sessions = sessions.filter(s => s.id !== id);
-  saveData();
-  renderSessions();
-  showToast('生産記録を削除しました');
-}
-
-// ===== 固定費設定 =====
-function saveMonthlyFee() {
-  const val = parseFloat(document.getElementById('monthly-fee').value);
-  if (!isNaN(val) && val >= 0) monthlyFee = val;
-  monthlyFeeEnabled = document.getElementById('monthly-fee-enabled').checked;
-  saveData();
-  renderCostList();
-  showToast('固定費設定を保存しました');
-}
-
-// ===== 原価計算 =====
-function calcKitchenFeePerBatch(productId) {
-  let totalAllocated = 0;
-  let totalBatches   = 0;
-  for (const sess of sessions) {
-    const item = sess.items.find(i => i.productId === productId);
-    if (!item) continue;
-    const sessionTotalBatches = sess.items.reduce((s, i) => s + i.batches, 0);
-    totalAllocated += sess.fee * (item.batches / sessionTotalBatches);
-    totalBatches   += item.batches;
-  }
-  return totalBatches > 0 ? totalAllocated / totalBatches : null;
-}
-
-// 月額固定費の商品1バッチあたり按分（月ごとの総バッチ数で均等割り）
-function calcMonthlyFeePerBatch(productId) {
-  if (!monthlyFeeEnabled || !monthlyFee || monthlyFee <= 0) return 0;
-
-  // セッションを月単位に集計
-  const monthData = {};
-  for (const sess of sessions) {
-    const month = sess.date.slice(0, 7); // "YYYY-MM"
-    if (!monthData[month]) monthData[month] = { totalBatches: 0, productBatches: 0 };
-    for (const item of sess.items) {
-      monthData[month].totalBatches += item.batches;
-      if (item.productId === productId) monthData[month].productBatches += item.batches;
-    }
-  }
-
-  // 月ごとに按分し、商品バッチ数で加重平均
-  let totalAllocated    = 0;
-  let totalProductBatches = 0;
-  for (const data of Object.values(monthData)) {
-    if (!data.productBatches || !data.totalBatches) continue;
-    totalAllocated      += monthlyFee * (data.productBatches / data.totalBatches);
-    totalProductBatches += data.productBatches;
-  }
-  return totalProductBatches > 0 ? totalAllocated / totalProductBatches : null;
-}
-
-function calcCost(prod) {
-  // 材料費（バッチ合計 ÷ 個数）
-  let materialTotal = 0;
-  for (const r of prod.recipe) {
-    const ing = ingredients.find(i => i.id === r.ingId);
-    if (!ing) continue;
-    materialTotal += (ing.price / ing.amount) * r.amount;
-  }
-  const material = materialTotal / prod.batch;
-
-  // 時間料金（セッション按分・1個あたり）
-  const kitchenTimeRaw = calcKitchenFeePerBatch(prod.id);
-  const kitchenTime    = kitchenTimeRaw !== null ? kitchenTimeRaw : null;
-
-  // 月額固定費（月次按分・1個あたり）
-  const kitchenMonthlyRaw = calcMonthlyFeePerBatch(prod.id);
-  const kitchenMonthly    = kitchenMonthlyRaw !== null ? kitchenMonthlyRaw : null;
-
-  // 包装費（1個あたり合計）
-  let pkgTotal = 0;
-  for (const r of (prod.packaging || [])) {
-    const item = pkgItems.find(i => i.id === r.pkgItemId);
-    if (!item) continue;
-    pkgTotal += (item.price / item.amount) * r.qty;
-  }
-  if (!prod.packaging && prod.pkg) pkgTotal = prod.pkg;
-
-  const total = material + (kitchenTime ?? 0) + (kitchenMonthly ?? 0) + pkgTotal;
-  return { material, kitchenTime, kitchenMonthly, pkg: pkgTotal, total };
-}
-
-function renderCosts() {
-  const el = document.getElementById('cost-list');
-  if (!products.length) { el.innerHTML = '<div class="empty">商品を登録すると原価が表示されます</div>'; return; }
-  const mult = parseFloat(document.getElementById('multiplier').value);
-
-  el.innerHTML = products.map(prod => {
-    const { material, kitchenTime, kitchenMonthly, pkg, total } = calcCost(prod);
-    const suggestedPrice = Math.ceil(total * mult);
-    const profit     = suggestedPrice - total;
-    const profitRate = total > 0 ? ((profit / suggestedPrice) * 100).toFixed(0) : 0;
-
-    const recipeDetail = prod.recipe.map(r => {
-      const ing = ingredients.find(i => i.id === r.ingId);
-      if (!ing) return '';
-      const cost = (ing.price / ing.amount) * r.amount;
-      return `<div class="cost-row"><span>　${esc(ing.name)} ${r.amount}${ing.unit}</span><span>¥${(cost/prod.batch).toFixed(2)}</span></div>`;
-    }).join('');
-
-    const pkgDetail = (prod.packaging || []).map(r => {
-      const item = pkgItems.find(i => i.id === r.pkgItemId);
-      if (!item) return '';
-      const cost = (item.price / item.amount) * r.qty;
-      return `<div class="cost-row"><span>　${esc(item.name)} ${r.qty}${item.unit}</span><span>¥${cost.toFixed(2)}</span></div>`;
-    }).join('');
-
-    const kitchenTimeRow = kitchenTime !== null
-      ? `<div class="cost-row"><span>　時間料金（按分平均）</span><span>¥${kitchenTime.toFixed(2)}</span></div>`
-      : `<div class="cost-row no-session"><span>　時間料金</span><span>生産記録なし</span></div>`;
-    const kitchenMonthlyRow = monthlyFeeEnabled && monthlyFee > 0
-      ? (kitchenMonthly !== null
-          ? `<div class="cost-row"><span>　月額固定費（按分）</span><span>¥${kitchenMonthly.toFixed(2)}</span></div>`
-          : `<div class="cost-row no-session"><span>　月額固定費</span><span>生産記録なし</span></div>`)
-      : '';
-    const kitchenTotal = (kitchenTime ?? 0) + (kitchenMonthly ?? 0);
-    const kitchenRow = kitchenTimeRow + kitchenMonthlyRow
-      + `<div class="cost-row"><span>小計</span><span>¥${kitchenTotal.toFixed(2)}</span></div>`;
-
-    const pkgSection = pkgDetail
-      ? `${pkgDetail}<div class="cost-row"><span>小計</span><span>¥${pkg.toFixed(2)}</span></div>`
-      : `<div class="cost-row"><span>小計</span><span>¥${pkg.toFixed(2)}</span></div>`;
-
-    return `
-      <div class="cost-card">
-        <div class="cost-card-name">${esc(prod.name)} <span class="badge">1個あたり</span></div>
-        <div class="cost-section material">
-          <div class="cost-section-title">🌾 材料費</div>
-          ${recipeDetail}
-          <div class="cost-row"><span>小計</span><span>¥${material.toFixed(2)}</span></div>
-        </div>
-        <div class="cost-section kitchen">
-          <div class="cost-section-title">🔥 キッチン利用料</div>
-          ${kitchenRow}
-        </div>
-        <div class="cost-section packaging">
-          <div class="cost-section-title">🎁 包装費</div>
-          ${pkgSection}
-        </div>
-        <div class="cost-row total"><span>原価合計</span><span>¥${total.toFixed(2)}</span></div>
-        <div class="cost-row price"><span>推奨販売価格 (${mult}倍)</span><span>¥${suggestedPrice.toLocaleString()}</span></div>
-        <div class="cost-row profit"><span>利益 / 利益率</span><span>¥${profit.toFixed(1)} / ${profitRate}%</span></div>
-      </div>`;
-  }).join('');
-}
-
-// ===== ユーティリティ =====
-function esc(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ===== クラウド同期 =====
-let cloudUrl = localStorage.getItem('okashi_cloud_url') || '';
-let cloudKey = localStorage.getItem('okashi_cloud_key') || '';
-
-function saveCloudSettings() {
-  cloudUrl = document.getElementById('cloud-url').value.trim().replace(/\/$/, '');
-  cloudKey = document.getElementById('cloud-key').value.trim();
-  if (!cloudUrl || !cloudKey) { alert('URLとキーを入力してください'); return; }
-  localStorage.setItem('okashi_cloud_url', cloudUrl);
-  localStorage.setItem('okashi_cloud_key', cloudKey);
-  showToast('設定を保存しました');
-}
-
-function setCloudStatus(msg, ok) {
-  const el = document.getElementById('cloud-status');
-  if (!el) return;
-  el.textContent = msg;
-  el.style.color = ok ? '#4a7c59' : '#e57373';
-}
-
-async function syncToCloud() {
-  if (!cloudUrl || !cloudKey) { alert('材料管理タブでクラウド設定を先に保存してください'); return; }
-  const data = {
-    ingredients: ingredients,
-    pkgItems:    pkgItems,
-    products:    products,
-    sessions:    sessions,
-    monthlyFee:        monthlyFee,
-    monthlyFeeEnabled: monthlyFeeEnabled
-  };
-  try {
-    setCloudStatus('保存中...', true);
-    const res = await fetch(`${cloudUrl}/api/data?key=${encodeURIComponent(cloudKey)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error(res.status);
-    setCloudStatus('✓ クラウドに保存しました', true);
-    showToast('クラウドに保存しました');
-  } catch(e) {
-    setCloudStatus('保存に失敗しました', false);
-    alert('保存に失敗しました。URLとキーを確認してください。');
-  }
-}
-
-async function syncFromCloud() {
-  if (!cloudUrl || !cloudKey) { alert('材料管理タブでクラウド設定を先に保存してください'); return; }
-  if (!confirm('クラウドのデータでこの端末のデータを上書きします。よろしいですか？')) return;
-  try {
-    setCloudStatus('読込中...', true);
-    const res = await fetch(`${cloudUrl}/api/data?key=${encodeURIComponent(cloudKey)}`);
-    if (!res.ok) throw new Error(res.status);
-    const data = await res.json();
-    if (!data.ingredients) { setCloudStatus('クラウドにデータがありません', false); return; }
-    ingredients = data.ingredients || [];
-    pkgItems    = data.pkgItems    || [];
-    products    = data.products    || [];
-    sessions    = data.sessions    || [];
-    monthlyFee        = data.monthlyFee        || 0;
-    monthlyFeeEnabled = data.monthlyFeeEnabled !== false;
-    saveData();
-    renderIngredients();
-    renderPkgItems();
-    renderProducts();
-    renderSessions();
-    if (monthlyFee > 0) document.getElementById('monthly-fee').value = monthlyFee;
-    document.getElementById('monthly-fee-enabled').checked = monthlyFeeEnabled;
-    setCloudStatus('✓ クラウドから読み込みました', true);
-    showToast('クラウドから読み込みました');
-  } catch(e) {
-    setCloudStatus('読込に失敗しました', false);
-    alert('読込に失敗しました。URLとキーを確認してください。');
-  }
-}
-
-// ===== 初期レンダリング =====
-if (monthlyFee > 0) document.getElementById('monthly-fee').value = monthlyFee;
-document.getElementById('monthly-fee-enabled').checked = monthlyFeeEnabled;
-if (settingsUnlocked) {
-  document.getElementById('cloud-settings-panel').style.display = 'block';
-}
-if (cloudUrl) document.getElementById('cloud-url').value = cloudUrl;
-if (cloudKey) document.getElementById('cloud-key').value = cloudKey;
-renderIngredients();
-renderPkgItems();
-renderProducts();
-renderSessions();
-</script>
-</body>
-</html>
+  <div id="cost-list">
