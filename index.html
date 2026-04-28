@@ -29,8 +29,27 @@
     top: 0;
     z-index: 100;
     box-shadow: 0 2px 4px rgba(0,0,0,.15);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
   header span { font-size: 0.85rem; font-weight: normal; opacity: .85; margin-left: 8px; }
+  #cloud-header-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 20px;
+    color: white;
+    font-size: 0.8rem;
+    padding: 5px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    transition: background .2s;
+    font-family: inherit;
+  }
+  #cloud-header-btn:active { background: rgba(255,255,255,0.3); }
 
   /* タブ */
   .tabs {
@@ -193,24 +212,6 @@
   .cost-row.profit { color: #9a7c6a; font-size: 0.8rem; }
   .cost-row.no-session { color: #b0998a; font-style: italic; }
 
-  /* 雲ボタン */
-  #cloud-btn {
-    position: fixed;
-    bottom: 24px;
-    right: 60px;
-    width: 36px;
-    height: 36px;
-    background: rgba(200,118,58,0.12);
-    border: none;
-    border-radius: 50%;
-    font-size: 16px;
-    cursor: pointer;
-    z-index: 200;
-    opacity: 0.7;
-    transition: opacity .2s;
-  }
-  #cloud-btn:active { opacity: 1; }
-
   /* クラウドモーダル */
   #cloud-modal-overlay {
     display: none;
@@ -333,7 +334,8 @@
 <body>
 
 <header>
-  🍪 お菓子原価計算<span>データは自動保存されます</span>
+  <div>🍪 お菓子原価計算<span>データは自動保存されます</span></div>
+  <button id="cloud-header-btn" onclick="toggleCloudModal()">☁️ 同期</button>
 </header>
 
 <div class="tabs">
@@ -535,9 +537,6 @@
   </div>
 </div>
 
-<!-- 雲ボタン（固定） -->
-<button id="cloud-btn" onclick="toggleCloudModal()" title="クラウド同期">☁️</button>
-
 <!-- クラウドモーダル -->
 <div id="cloud-modal-overlay" onclick="closeCloudModal(event)">
   <div id="cloud-modal">
@@ -599,13 +598,16 @@ let currentUser = null;
 
 auth.onAuthStateChanged(user => {
   currentUser = user;
+  const btn = document.getElementById('cloud-header-btn');
   if (user) {
     document.getElementById('cloud-login-section').style.display = 'none';
     document.getElementById('cloud-sync-section').style.display = 'block';
     document.getElementById('cloud-user-email').textContent = user.email;
+    btn.textContent = '✅ 同期';
   } else {
     document.getElementById('cloud-login-section').style.display = 'block';
     document.getElementById('cloud-sync-section').style.display = 'none';
+    btn.textContent = '☁️ 同期';
   }
 });
 
