@@ -556,6 +556,9 @@
       <div id="auth-error" style="font-size:0.78rem;color:#c0392b;margin-top:6px;display:none"></div>
       <button class="btn btn-primary btn-full" onclick="loginWithEmail()">ログイン</button>
       <button class="btn btn-secondary btn-full" style="margin-top:6px" onclick="registerWithEmail()">新規登録</button>
+      <div style="text-align:center;margin-top:10px">
+        <button onclick="sendPasswordReset()" style="background:none;border:none;color:#9a7c6a;font-size:0.78rem;cursor:pointer;text-decoration:underline;font-family:inherit">パスワードを忘れた方</button>
+      </div>
     </div>
 
     <!-- ログイン済み時 -->
@@ -657,6 +660,19 @@ async function registerWithEmail() {
     await auth.createUserWithEmailAndPassword(email, pass);
     document.getElementById('auth-error').style.display = 'none';
     showToast('アカウントを作成してログインしました');
+  } catch(e) {
+    showAuthError(firebaseErrMsg(e.code));
+  }
+}
+
+async function sendPasswordReset() {
+  const email = document.getElementById('auth-email').value.trim();
+  if (!email) { showAuthError('メールアドレスを入力してください'); return; }
+  try {
+    await auth.sendPasswordResetEmail(email);
+    showAuthError('');
+    document.getElementById('auth-error').style.display = 'none';
+    showToast('リセット用メールを送信しました');
   } catch(e) {
     showAuthError(firebaseErrMsg(e.code));
   }
