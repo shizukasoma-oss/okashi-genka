@@ -446,7 +446,7 @@
       </div>
       <div>
         <label>単位</label>
-        <select id="ing-unit" onchange="updateKcalLabel(this.value)">
+        <select id="ing-unit">
           <option value="g">g</option>
           <option value="ml">ml</option>
           <option value="個">個</option>
@@ -457,8 +457,6 @@
     </div>
     <label>購入価格（円）</label>
     <input type="number" id="ing-price" placeholder="例：180" min="0" step="any">
-    <label id="ing-kcal-label">カロリー（kcal / 100g・任意）</label>
-    <input type="number" id="ing-kcal" placeholder="例：366　※わからない場合は空欄でOK" min="0" step="any">
     <button class="btn btn-primary btn-full" onclick="saveIngredient()">保存する</button>
     <button class="btn btn-secondary btn-full" style="margin-top:6px" onclick="closeModal('ingredient-modal')">キャンセル</button>
   </div>
@@ -832,7 +830,7 @@ function renderIngredients() {
       <div class="list-item">
         <div class="list-item-info">
           <div class="list-item-name">${esc(ing.name)}</div>
-          <div class="list-item-sub">${ing.amount}${ing.unit} / ¥${ing.price.toLocaleString()} → ¥${unitPrice}/${ing.unit}${ing.kcal ? '　' + ((['g','ml'].includes(ing.unit)) ? ing.kcal + 'kcal/100' + ing.unit : ing.kcal + 'kcal/' + ing.unit) : ''}</div>
+          <div class="list-item-sub">${ing.amount}${ing.unit} / ¥${ing.price.toLocaleString()} → ¥${unitPrice}/${ing.unit}</div>
         </div>
         <div class="list-item-actions">
           <button class="btn btn-secondary btn-sm" onclick="editIngredient('${ing.id}')">編集</button>
@@ -848,9 +846,7 @@ function openIngredientModal(id) {
   document.getElementById('ing-amount').value = '';
   document.getElementById('ing-price').value = '';
   document.getElementById('ing-unit').value = 'g';
-  document.getElementById('ing-kcal').value = '';
   document.getElementById('ing-modal-title').textContent = '食材を追加';
-  updateKcalLabel('g');
   if (id) {
     const ing = ingredients.find(i => i.id === id);
     if (!ing) return;
@@ -859,9 +855,7 @@ function openIngredientModal(id) {
     document.getElementById('ing-amount').value = ing.amount;
     document.getElementById('ing-price').value = ing.price;
     document.getElementById('ing-unit').value = ing.unit;
-    document.getElementById('ing-kcal').value = ing.kcal || '';
     document.getElementById('ing-modal-title').textContent = '食材を編集';
-    updateKcalLabel(ing.unit);
   }
   document.getElementById('ingredient-modal').classList.add('open');
   setTimeout(() => document.getElementById('ing-name').focus(), 100);
@@ -880,11 +874,10 @@ function saveIngredient() {
   if (!amount || amount <= 0)     { alert('購入量を正しく入力してください'); return; }
   if (isNaN(price) || price < 0) { alert('購入価格を正しく入力してください'); return; }
 
-  const kcal = parseFloat(document.getElementById('ing-kcal').value) || 0;
   if (editId) {
-    ingredients[ingredients.findIndex(i => i.id === editId)] = { id: editId, name, amount, unit, price, kcal };
+    ingredients[ingredients.findIndex(i => i.id === editId)] = { id: editId, name, amount, unit, price };
   } else {
-    ingredients.push({ id: uid(), name, amount, unit, price, kcal });
+    ingredients.push({ id: uid(), name, amount, unit, price });
   }
   saveData();
   closeModal('ingredient-modal');
@@ -1400,7 +1393,7 @@ function renderCosts() {
         <div class="cost-card-header" onclick="toggleCostDetail('${cardId}')">
           <div class="cost-card-header-left">
             <div class="cost-card-name">${esc(prod.name)}</div>
-            <div class="cost-card-summary">原価 ¥${total.toFixed(1)} ／ 推奨 ¥${suggestedPrice.toLocaleString()}（${mult}倍）${calcKcal(prod) !== null ? ' ／ ' + calcKcal(prod).toFixed(1) + 'kcal' : ''}</div>
+            <div class="cost-card-summary">原価 ¥${total.toFixed(1)} ／ 推奨 ¥${suggestedPrice.toLocaleString()}（${mult}倍）</div>
           </div>
           <span class="cost-card-toggle" id="${cardId}-toggle">▼ 詳細</span>
         </div>
@@ -1421,33 +1414,9 @@ function renderCosts() {
           <div class="cost-row total"><span>原価合計</span><span>¥${total.toFixed(2)}</span></div>
           <div class="cost-row price"><span>推奨販売価格 (${mult}倍)</span><span>¥${suggestedPrice.toLocaleString()}</span></div>
           <div class="cost-row profit"><span>利益 / 利益率</span><span>¥${profit.toFixed(1)} / ${profitRate}%</span></div>
-          ${calcKcal(prod) !== null ? `<div class="cost-row" style="color:#4a9c6a;font-weight:bold"><span>🔥 カロリー（1個）</span><span>${calcKcal(prod).toFixed(1)} kcal</span></div>` : ''}
         </div>
       </div>`;
   }).join('');
-}
-
-function updateKcalLabel(unit) {
-  const per100 = ['g', 'ml'];
-  document.getElementById('ing-kcal-label').textContent =
-    per100.includes(unit)
-      ? `カロリー（kcal / 100${unit}・任意）`
-      : `カロリー（kcal / 1${unit}・任意）`;
-}
-
-function calcKcal(prod) {
-  let total = 0;
-  let hasKcal = false;
-  for (const r of prod.recipe) {
-    const ing = ingredients.find(i => i.id === r.ingId);
-    if (!ing || !ing.kcal) continue;
-    hasKcal = true;
-    const kcalForAmount = ['g', 'ml'].includes(ing.unit)
-      ? (ing.kcal / 100) * r.amount
-      : ing.kcal * r.amount;
-    total += kcalForAmount;
-  }
-  return hasKcal ? total / prod.batch : null;
 }
 
 function toggleCostDetail(id) {
