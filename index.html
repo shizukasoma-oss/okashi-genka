@@ -211,44 +211,6 @@
   }
   #cloud-btn:active { opacity: 1; }
 
-  /* 管理者ボタン */
-  #admin-btn {
-    position: fixed;
-    bottom: 24px;
-    right: 16px;
-    width: 36px;
-    height: 36px;
-    background: rgba(200,118,58,0.12);
-    border: none;
-    border-radius: 50%;
-    font-size: 16px;
-    cursor: pointer;
-    z-index: 200;
-    opacity: 0.35;
-    transition: opacity .2s;
-  }
-  #admin-btn:active { opacity: 0.8; }
-
-  /* 管理者モーダル */
-  #admin-modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.45);
-    z-index: 400;
-    align-items: center;
-    justify-content: center;
-  }
-  #admin-modal-overlay.open { display: flex; }
-  #admin-modal {
-    background: #fff;
-    border-radius: 14px;
-    padding: 22px 20px;
-    width: 290px;
-    max-width: 90vw;
-    box-shadow: 0 8px 24px rgba(0,0,0,.2);
-  }
-
   /* クラウドモーダル */
   #cloud-modal-overlay {
     display: none;
@@ -576,9 +538,6 @@
 <!-- 雲ボタン（固定） -->
 <button id="cloud-btn" onclick="toggleCloudModal()" title="クラウド同期">☁️</button>
 
-<!-- 管理者ボタン（固定） -->
-<button id="admin-btn" onclick="toggleAdminModal()" title="管理者設定">⚙️</button>
-
 <!-- クラウドモーダル -->
 <div id="cloud-modal-overlay" onclick="closeCloudModal(event)">
   <div id="cloud-modal">
@@ -612,24 +571,6 @@
     </div>
 
     <button class="btn btn-secondary" style="width:100%;margin-top:10px;font-size:0.82rem" onclick="closeCloudModal()">閉じる</button>
-  </div>
-</div>
-
-<!-- 管理者モーダル -->
-<div id="admin-modal-overlay" onclick="closeAdminModal(event)">
-  <div id="admin-modal">
-    <div style="font-weight:bold;font-size:1rem;margin-bottom:12px;color:#3d2b1f">⚙️ 管理者設定</div>
-    <div style="font-size:0.82rem;color:#7a5c4a;margin-bottom:14px;line-height:1.5">
-      全データをリセットします。この操作は元に戻せません。
-    </div>
-    <input type="password" id="admin-pass-input" placeholder="パスワードを入力"
-      onkeydown="if(event.key==='Enter')unlockAdmin()"
-      style="width:100%;padding:10px;border:1px solid #e8d5c4;border-radius:8px;font-size:1rem">
-    <div id="admin-pass-error" style="font-size:0.78rem;color:#c0392b;margin-top:6px;display:none">パスワードが違います</div>
-    <div style="display:flex;gap:8px;margin-top:14px">
-      <button class="btn btn-secondary" style="flex:1" onclick="closeAdminModal()">キャンセル</button>
-      <button class="btn btn-primary" style="flex:1" onclick="unlockAdmin()">解除</button>
-    </div>
   </div>
 </div>
 
@@ -675,8 +616,6 @@ let products          = JSON.parse(localStorage.getItem('okashi_products')      
 let sessions          = JSON.parse(localStorage.getItem('okashi_sessions')      || '[]');
 let monthlyFee        = parseFloat(localStorage.getItem('okashi_monthly_fee')   || '0');
 let monthlyFeeEnabled = localStorage.getItem('okashi_monthly_fee_enabled') !== 'false';
-
-const ADMIN_PASS = 'genkakeisan';
 
 // ===== クラウドモーダル =====
 function toggleCloudModal() {
@@ -792,39 +731,6 @@ async function syncFromCloud() {
   } catch(e) {
     setCloudStatus('読込に失敗しました', false);
     showToast('読込に失敗しました');
-  }
-}
-
-// ===== 管理者モーダル =====
-function toggleAdminModal() {
-  document.getElementById('admin-modal-overlay').classList.add('open');
-  setTimeout(() => document.getElementById('admin-pass-input').focus(), 100);
-}
-
-function closeAdminModal(e) {
-  if (e && e.target !== document.getElementById('admin-modal-overlay')) return;
-  document.getElementById('admin-modal-overlay').classList.remove('open');
-  document.getElementById('admin-pass-input').value = '';
-  document.getElementById('admin-pass-error').style.display = 'none';
-}
-
-function unlockAdmin() {
-  const input = document.getElementById('admin-pass-input');
-  if (input.value === ADMIN_PASS) {
-    document.getElementById('admin-modal-overlay').classList.remove('open');
-    document.getElementById('admin-pass-error').style.display = 'none';
-    input.value = '';
-    if (confirm('全データをリセットします。本当によろしいですか？\nこの操作は元に戻せません。')) {
-      ingredients = []; pkgItems = []; products = []; sessions = [];
-      monthlyFee = 0; monthlyFeeEnabled = true;
-      saveData();
-      renderIngredients(); renderPkgItems(); renderProducts(); renderSessions();
-      document.getElementById('monthly-fee').value = '';
-      document.getElementById('monthly-fee-enabled').checked = true;
-      showToast('全データをリセットしました');
-    }
-  } else {
-    document.getElementById('admin-pass-error').style.display = 'block';
   }
 }
 
