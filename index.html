@@ -192,7 +192,19 @@
     box-shadow: 0 1px 4px rgba(0,0,0,.08);
     border-left: 4px solid #c8763a;
   }
-  .cost-card-name { font-weight: bold; font-size: 1rem; margin-bottom: 8px; }
+  .cost-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+  }
+  .cost-card-header-left { flex: 1; min-width: 0; }
+  .cost-card-name { font-weight: bold; font-size: 1rem; }
+  .cost-card-summary { font-size: 0.8rem; color: #9a7c6a; margin-top: 2px; }
+  .cost-card-toggle { font-size: 0.75rem; color: #c8763a; margin-left: 8px; flex-shrink: 0; }
+  .cost-card-detail { margin-top: 10px; }
+  .cost-card-detail.hidden { display: none; }
   .cost-row {
     display: flex;
     justify-content: space-between;
@@ -1359,27 +1371,43 @@ function renderCosts() {
       ? `${pkgDetail}<div class="cost-row"><span>小計</span><span>¥${pkg.toFixed(2)}</span></div>`
       : `<div class="cost-row"><span>小計</span><span>¥${pkg.toFixed(2)}</span></div>`;
 
+    const cardId = 'cost-' + prod.id;
     return `
       <div class="cost-card">
-        <div class="cost-card-name">${esc(prod.name)} <span class="badge">1個あたり</span></div>
-        <div class="cost-section material">
-          <div class="cost-section-title">🌾 材料費</div>
-          ${recipeDetail}
-          <div class="cost-row"><span>小計</span><span>¥${material.toFixed(2)}</span></div>
+        <div class="cost-card-header" onclick="toggleCostDetail('${cardId}')">
+          <div class="cost-card-header-left">
+            <div class="cost-card-name">${esc(prod.name)}</div>
+            <div class="cost-card-summary">原価 ¥${total.toFixed(1)} ／ 推奨 ¥${suggestedPrice.toLocaleString()}（${mult}倍）</div>
+          </div>
+          <span class="cost-card-toggle" id="${cardId}-toggle">▼ 詳細</span>
         </div>
-        <div class="cost-section kitchen">
-          <div class="cost-section-title">🔥 キッチン利用料</div>
-          ${kitchenRow}
+        <div class="cost-card-detail hidden" id="${cardId}">
+          <div class="cost-section material">
+            <div class="cost-section-title">🌾 材料費</div>
+            ${recipeDetail}
+            <div class="cost-row"><span>小計</span><span>¥${material.toFixed(2)}</span></div>
+          </div>
+          <div class="cost-section kitchen">
+            <div class="cost-section-title">🔥 キッチン利用料</div>
+            ${kitchenRow}
+          </div>
+          <div class="cost-section packaging">
+            <div class="cost-section-title">🎁 包装費</div>
+            ${pkgSection}
+          </div>
+          <div class="cost-row total"><span>原価合計</span><span>¥${total.toFixed(2)}</span></div>
+          <div class="cost-row price"><span>推奨販売価格 (${mult}倍)</span><span>¥${suggestedPrice.toLocaleString()}</span></div>
+          <div class="cost-row profit"><span>利益 / 利益率</span><span>¥${profit.toFixed(1)} / ${profitRate}%</span></div>
         </div>
-        <div class="cost-section packaging">
-          <div class="cost-section-title">🎁 包装費</div>
-          ${pkgSection}
-        </div>
-        <div class="cost-row total"><span>原価合計</span><span>¥${total.toFixed(2)}</span></div>
-        <div class="cost-row price"><span>推奨販売価格 (${mult}倍)</span><span>¥${suggestedPrice.toLocaleString()}</span></div>
-        <div class="cost-row profit"><span>利益 / 利益率</span><span>¥${profit.toFixed(1)} / ${profitRate}%</span></div>
       </div>`;
   }).join('');
+}
+
+function toggleCostDetail(id) {
+  const detail = document.getElementById(id);
+  const toggle = document.getElementById(id + '-toggle');
+  const hidden = detail.classList.toggle('hidden');
+  toggle.textContent = hidden ? '▼ 詳細' : '▲ 閉じる';
 }
 
 // ===== ユーティリティ =====
