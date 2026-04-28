@@ -1431,6 +1431,11 @@ function esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ===== サービスワーカー登録 =====
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
+
 // ===== 初期レンダリング =====
 if (monthlyFee > 0) document.getElementById('monthly-fee').value = monthlyFee;
 document.getElementById('monthly-fee-enabled').checked = monthlyFeeEnabled;
