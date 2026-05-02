@@ -615,10 +615,13 @@ const db   = firebase.firestore();
 
 let currentUser = null;
 
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async user => {
   currentUser = user;
   const btn = document.getElementById('cloud-header-btn');
   if (user) {
+    // 許可リスト確認
+    const allowed = await checkAllowedUser(user);
+    if (!allowed) return;
     document.getElementById('cloud-login-section').style.display = 'none';
     document.getElementById('cloud-sync-section').style.display = 'block';
     document.getElementById('cloud-user-email').textContent = user.email;
@@ -629,6 +632,22 @@ auth.onAuthStateChanged(user => {
     btn.textContent = '☁️ 同期';
   }
 });
+
+async function checkAllowedUser(user) {
+  try {
+    const doc = await db.collection('allowedUsers').doc(user.email).get();
+    if (!doc.exists) {
+      await auth.signOut();
+      showAuthError('このアカウントは利用が許可されていません。アプリ提供者にお問い合わせください。');
+      return false;
+    }
+    return true;
+  } catch(e) {
+    await auth.signOut();
+    showAuthError('確認中にエラーが発生しました。');
+    return false;
+  }
+}
 
 // ===== データ =====
 let ingredients       = JSON.parse(localStorage.getItem('okashi_ingredients')   || '[]');
