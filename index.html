@@ -626,12 +626,13 @@ const auth = firebase.auth();
 const db   = firebase.firestore();
 
 let currentUser = null;
+const ADMIN_EMAIL = 'shizuka.soma@gmail.com';
 
 auth.onAuthStateChanged(async user => {
   currentUser = user;
   const btn = document.getElementById('cloud-header-btn');
   if (user) {
-    // 許可リスト確認
+    // 許可リスト確認（管理者は常に許可）
     const allowed = await checkAllowedUser(user);
     if (!allowed) return;
     document.getElementById('cloud-login-section').style.display = 'none';
@@ -648,8 +649,6 @@ auth.onAuthStateChanged(async user => {
     btn.textContent = '☁️ 同期';
   }
 });
-
-const ADMIN_EMAIL = 'shizuka.soma@gmail.com';
 
 async function loadAllowedUsers() {
   const list = document.getElementById('allowed-users-list');
@@ -690,6 +689,13 @@ async function removeAllowedUser(email) {
 }
 
 async function checkAllowedUser(user) {
+  // 管理者は常に許可（ドキュメントがなくても自動作成）
+  if (user.email === ADMIN_EMAIL) {
+    try {
+      await db.collection('allowedUsers').doc(user.email).set({ active: true }, { merge: true });
+    } catch(e) { /* 書き込み失敗しても管理者は通す */ }
+    return true;
+  }
   try {
     const doc = await db.collection('allowedUsers').doc(user.email).get();
     if (!doc.exists) {
