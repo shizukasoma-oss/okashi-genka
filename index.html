@@ -586,6 +586,18 @@
       </div>
       <div id="cloud-status" style="font-size:0.78rem;color:#9a7c6a;margin-top:10px;text-align:center;min-height:18px"></div>
       <button class="btn btn-secondary btn-full" style="margin-top:14px;font-size:0.8rem" onclick="logoutFirebase()">ログアウト</button>
+
+      <!-- 管理者メニュー（管理者のみ表示） -->
+      <div id="admin-user-section" style="display:none;margin-top:14px;border-top:1px solid #e8d5c4;padding-top:14px">
+        <div style="font-size:0.85rem;font-weight:bold;color:#c8763a;margin-bottom:8px">👑 ユーザー管理</div>
+        <div id="allowed-users-list" style="margin-bottom:10px;max-height:160px;overflow-y:auto;font-size:0.8rem"></div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <input type="email" id="new-allowed-email" placeholder="追加するメールアドレス"
+            style="flex:1;padding:7px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.82rem;font-family:inherit">
+          <button class="btn btn-primary btn-sm" onclick="addAllowedUser()">追加</button>
+        </div>
+        <div id="admin-user-status" style="font-size:0.78rem;color:#9a7c6a;margin-top:6px;min-height:16px;text-align:center"></div>
+      </div>
     </div>
 
     <button class="btn btn-secondary" style="width:100%;margin-top:10px;font-size:0.82rem" onclick="closeCloudModal()">閉じる</button>
@@ -626,12 +638,56 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('cloud-sync-section').style.display = 'block';
     document.getElementById('cloud-user-email').textContent = user.email;
     btn.textContent = '✅ 同期';
+    if (user.email === ADMIN_EMAIL) {
+      document.getElementById('admin-user-section').style.display = 'block';
+      loadAllowedUsers();
+    }
   } else {
     document.getElementById('cloud-login-section').style.display = 'block';
     document.getElementById('cloud-sync-section').style.display = 'none';
     btn.textContent = '☁️ 同期';
   }
 });
+
+const ADMIN_EMAIL = 'shizuka.soma@gmail.com';
+
+async function loadAllowedUsers() {
+  const list = document.getElementById('allowed-users-list');
+  list.innerHTML = '読込中...';
+  const snap = await db.collection('allowedUsers').get();
+  if (snap.empty) { list.innerHTML = '<div style="color:#b0998a">登録なし</div>'; return; }
+  list.innerHTML = snap.docs.map(doc => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f0e8e0">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${doc.id}</span>
+      ${doc.id !== ADMIN_EMAIL ? `<button onclick="removeAllowedUser('${doc.id}')"
+        style="background:none;border:none;color:#e57373;cursor:pointer;font-size:0.8rem;flex-shrink:0;margin-left:6px">削除</button>` : ''}
+    </div>`).join('');
+}
+
+async function addAllowedUser() {
+  const email = document.getElementById('new-allowed-email').value.trim().toLowerCase();
+  const status = document.getElementById('admin-user-status');
+  if (!email) { status.textContent = 'メールアドレスを入力してください'; return; }
+  try {
+    await db.collection('allowedUsers').doc(email).set({ active: true });
+    document.getElementById('new-allowed-email').value = '';
+    status.textContent = '追加しました';
+    loadAllowedUsers();
+  } catch(e) {
+    status.textContent = '追加に失敗しました';
+  }
+}
+
+async function removeAllowedUser(email) {
+  if (!confirm(`「${email}」を削除しますか？`)) return;
+  try {
+    await db.collection('allowedUsers').doc(email).delete();
+    document.getElementById('admin-user-status').textContent = '削除しました';
+    loadAllowedUsers();
+  } catch(e) {
+    document.getElementById('admin-user-status').textContent = '削除に失敗しました';
+  }
+}
 
 async function checkAllowedUser(user) {
   try {
