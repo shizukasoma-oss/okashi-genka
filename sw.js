@@ -1,4 +1,4 @@
-const CACHE = 'okashi-v1';
+const CACHE = 'okashi-v3';
 const FILES = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
