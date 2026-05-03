@@ -341,9 +341,33 @@
     .modal-overlay { align-items: center; }
     .modal { border-radius: 20px; max-height: 80vh; }
   }
+
+  /* ===== ログイン画面 ===== */
+  #login-screen {
+    position: fixed;
+    inset: 0;
+    background: #fdf6f0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow-y: auto;
+  }
+  .login-box {
+    width: 100%;
+    max-width: 360px;
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.1);
+  }
 </style>
 </head>
 <body>
+
+<div id="main-app" style="display:none">
 
 <header>
   <div>🍪 お菓子原価計算<span>データは自動保存されます</span></div>
@@ -554,31 +578,7 @@
   <div id="cloud-modal">
     <div style="font-weight:bold;font-size:1rem;margin-bottom:14px;color:#3d2b1f">☁️ クラウド同期</div>
 
-    <!-- 未ログイン時 -->
-    <div id="cloud-login-section">
-      <div style="font-size:0.82rem;color:#7a5c4a;margin-bottom:12px;line-height:1.5">
-        メールアドレスとパスワードでログインすると、スマホとPCのデータを同期できます。
-      </div>
-      <label style="margin-top:0">メールアドレス</label>
-      <input type="email" id="auth-email" placeholder="example@mail.com"
-        onkeydown="if(event.key==='Enter')document.getElementById('auth-pass').focus()">
-      <label>パスワード（6文字以上）</label>
-      <div style="position:relative">
-        <input type="password" id="auth-pass" placeholder="パスワード"
-          onkeydown="if(event.key==='Enter')loginWithEmail()" style="padding-right:40px">
-        <button type="button" onclick="togglePassView()" id="pass-toggle"
-          style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:#9a7c6a;padding:0">👁</button>
-      </div>
-      <div id="auth-error" style="font-size:0.78rem;color:#c0392b;margin-top:6px;display:none"></div>
-      <button class="btn btn-primary btn-full" onclick="loginWithEmail()">ログイン</button>
-      <button class="btn btn-secondary btn-full" style="margin-top:6px" onclick="registerWithEmail()">新規登録</button>
-      <div style="text-align:center;margin-top:10px">
-        <button onclick="sendPasswordReset()" style="background:none;border:none;color:#9a7c6a;font-size:0.78rem;cursor:pointer;text-decoration:underline;font-family:inherit">パスワードを忘れた方</button>
-      </div>
-    </div>
-
-    <!-- ログイン済み時 -->
-    <div id="cloud-sync-section" style="display:none">
+    <div id="cloud-sync-section">
       <div id="cloud-user-email" style="font-size:0.82rem;color:#7a5c4a;margin-bottom:14px;text-align:center"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <button class="btn btn-primary" onclick="syncToCloud()">↑ 保存</button>
@@ -606,6 +606,35 @@
 
 <div id="toast"></div>
 
+</div><!-- /#main-app -->
+
+<!-- ログイン画面 -->
+<div id="login-screen">
+  <div style="text-align:center;margin-bottom:28px">
+    <div style="font-size:2.4rem">🍪</div>
+    <div style="font-size:1.3rem;font-weight:bold;color:#c8763a;margin-top:8px">お菓子原価計算</div>
+    <div style="font-size:0.82rem;color:#9a7c6a;margin-top:6px">ログインしてご利用ください</div>
+  </div>
+  <div class="login-box">
+    <label style="margin-top:0">メールアドレス</label>
+    <input type="email" id="login-email" placeholder="example@mail.com"
+      onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+    <label>パスワード</label>
+    <div style="position:relative">
+      <input type="password" id="login-pass" placeholder="パスワード（6文字以上）" style="padding-right:40px"
+        onkeydown="if(event.key==='Enter')doLogin()">
+      <button type="button" onclick="toggleLoginPass()" id="login-pass-toggle"
+        style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:#9a7c6a;padding:0">👁</button>
+    </div>
+    <div id="login-error" style="font-size:0.78rem;color:#c0392b;margin-top:6px;min-height:16px"></div>
+    <button class="btn btn-primary btn-full" onclick="doLogin()">ログイン</button>
+    <button class="btn btn-secondary btn-full" style="margin-top:6px" onclick="doRegister()">新規登録</button>
+    <div style="text-align:center;margin-top:10px">
+      <button onclick="doPasswordReset()" style="background:none;border:none;color:#9a7c6a;font-size:0.78rem;cursor:pointer;text-decoration:underline;font-family:inherit">パスワードを忘れた方</button>
+    </div>
+  </div>
+</div>
+
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -630,23 +659,24 @@ const ADMIN_EMAIL = 'shizuka.soma@gmail.com';
 
 auth.onAuthStateChanged(async user => {
   currentUser = user;
-  const btn = document.getElementById('cloud-header-btn');
   if (user) {
     // 許可リスト確認（管理者は常に許可）
     const allowed = await checkAllowedUser(user);
     if (!allowed) return;
-    document.getElementById('cloud-login-section').style.display = 'none';
-    document.getElementById('cloud-sync-section').style.display = 'block';
+    // メインアプリを表示
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
     document.getElementById('cloud-user-email').textContent = user.email;
-    btn.textContent = '✅ 同期';
+    document.getElementById('cloud-header-btn').textContent = '✅ 同期';
     if (user.email === ADMIN_EMAIL) {
       document.getElementById('admin-user-section').style.display = 'block';
       loadAllowedUsers();
     }
   } else {
-    document.getElementById('cloud-login-section').style.display = 'block';
-    document.getElementById('cloud-sync-section').style.display = 'none';
-    btn.textContent = '☁️ 同期';
+    // ログイン画面を表示
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('main-app').style.display = 'none';
+    document.getElementById('cloud-modal-overlay').classList.remove('open');
   }
 });
 
@@ -700,13 +730,13 @@ async function checkAllowedUser(user) {
     const doc = await db.collection('allowedUsers').doc(user.email).get();
     if (!doc.exists) {
       await auth.signOut();
-      showAuthError('このアカウントは利用が許可されていません。アプリ提供者にお問い合わせください。');
+      document.getElementById('login-error').textContent = 'このアカウントは利用が許可されていません。アプリ提供者にお問い合わせください。';
       return false;
     }
     return true;
   } catch(e) {
     await auth.signOut();
-    showAuthError('確認中にエラーが発生しました。');
+    document.getElementById('login-error').textContent = '確認中にエラーが発生しました。';
     return false;
   }
 }
@@ -719,13 +749,58 @@ let sessions          = JSON.parse(localStorage.getItem('okashi_sessions')      
 let monthlyFee        = parseFloat(localStorage.getItem('okashi_monthly_fee')   || '0');
 let monthlyFeeEnabled = localStorage.getItem('okashi_monthly_fee_enabled') !== 'false';
 
+// ===== ログイン画面 =====
+function toggleLoginPass() {
+  const input = document.getElementById('login-pass');
+  const btn   = document.getElementById('login-pass-toggle');
+  if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+  else { input.type = 'password'; btn.textContent = '👁'; }
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  if (!email || !pass) { errEl.textContent = 'メールアドレスとパスワードを入力してください'; return; }
+  errEl.textContent = '';
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch(e) {
+    errEl.textContent = firebaseErrMsg(e.code);
+  }
+}
+
+async function doRegister() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  if (!email || !pass) { errEl.textContent = 'メールアドレスとパスワードを入力してください'; return; }
+  if (pass.length < 6) { errEl.textContent = 'パスワードは6文字以上にしてください'; return; }
+  errEl.textContent = '';
+  try {
+    await auth.createUserWithEmailAndPassword(email, pass);
+  } catch(e) {
+    errEl.textContent = firebaseErrMsg(e.code);
+  }
+}
+
+async function doPasswordReset() {
+  const email = document.getElementById('login-email').value.trim();
+  const errEl = document.getElementById('login-error');
+  if (!email) { errEl.textContent = 'メールアドレスを入力してください'; return; }
+  try {
+    await auth.sendPasswordResetEmail(email);
+    errEl.style.color = '#4a7c59';
+    errEl.textContent = 'リセット用メールを送信しました（迷惑メールフォルダもご確認ください）';
+  } catch(e) {
+    errEl.style.color = '#c0392b';
+    errEl.textContent = firebaseErrMsg(e.code);
+  }
+}
+
 // ===== クラウドモーダル =====
 function toggleCloudModal() {
   document.getElementById('cloud-modal-overlay').classList.add('open');
-  document.getElementById('auth-error').style.display = 'none';
-  setTimeout(() => {
-    if (!currentUser) document.getElementById('auth-email').focus();
-  }, 100);
 }
 
 function closeCloudModal(e) {
@@ -733,69 +808,9 @@ function closeCloudModal(e) {
   document.getElementById('cloud-modal-overlay').classList.remove('open');
 }
 
-// ===== Firebase 認証 =====
-function togglePassView() {
-  const input = document.getElementById('auth-pass');
-  const btn   = document.getElementById('pass-toggle');
-  if (input.type === 'password') {
-    input.type = 'text';
-    btn.textContent = '🙈';
-  } else {
-    input.type = 'password';
-    btn.textContent = '👁';
-  }
-}
-
-async function loginWithEmail() {
-  const email = document.getElementById('auth-email').value.trim();
-  const pass  = document.getElementById('auth-pass').value;
-  const errEl = document.getElementById('auth-error');
-  if (!email || !pass) { showAuthError('メールアドレスとパスワードを入力してください'); return; }
-  try {
-    await auth.signInWithEmailAndPassword(email, pass);
-    errEl.style.display = 'none';
-    showToast('ログインしました');
-  } catch(e) {
-    showAuthError(firebaseErrMsg(e.code));
-  }
-}
-
-async function registerWithEmail() {
-  const email = document.getElementById('auth-email').value.trim();
-  const pass  = document.getElementById('auth-pass').value;
-  if (!email || !pass) { showAuthError('メールアドレスとパスワードを入力してください'); return; }
-  if (pass.length < 6) { showAuthError('パスワードは6文字以上にしてください'); return; }
-  try {
-    await auth.createUserWithEmailAndPassword(email, pass);
-    document.getElementById('auth-error').style.display = 'none';
-    showToast('アカウントを作成してログインしました');
-  } catch(e) {
-    showAuthError(firebaseErrMsg(e.code));
-  }
-}
-
-async function sendPasswordReset() {
-  const email = document.getElementById('auth-email').value.trim();
-  if (!email) { showAuthError('メールアドレスを入力してください'); return; }
-  try {
-    await auth.sendPasswordResetEmail(email);
-    showAuthError('');
-    document.getElementById('auth-error').style.display = 'none';
-    showToast('リセット用メールを送信しました');
-  } catch(e) {
-    showAuthError(firebaseErrMsg(e.code));
-  }
-}
-
 async function logoutFirebase() {
+  document.getElementById('cloud-modal-overlay').classList.remove('open');
   await auth.signOut();
-  showToast('ログアウトしました');
-}
-
-function showAuthError(msg) {
-  const el = document.getElementById('auth-error');
-  el.textContent = msg;
-  el.style.display = 'block';
 }
 
 function firebaseErrMsg(code) {
